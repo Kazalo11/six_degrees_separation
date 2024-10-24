@@ -2,7 +2,6 @@ package routes
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -38,7 +37,6 @@ func getFeaturedArtists(c *gin.Context) {
 	}
 	token, err := config.Token(c)
 	if err != nil {
-		log.Printf("Failed to get token: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to obtain authorization token"})
 		return
 	}
