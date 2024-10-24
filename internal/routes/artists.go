@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 
 	albumFuncs "github.com/Kazalo11/six-degrees-seperation/internal/album"
 	"github.com/gin-gonic/gin"
@@ -55,20 +56,36 @@ func getFeaturedArtists(c *gin.Context) {
 	}
 
 	featuredArtists := make(albumFuncs.FeaturedArtistInfo)
+	var wg sync.WaitGroup
+
+	resultChan := make(chan albumFuncs.FeaturedArtistInfo)
 
 	for _, album := range albums.Albums {
-		fullAlbum, err := client.GetAlbum(c, album.ID)
+		wg.Add(1)
+		go func(albumId spotify.ID) {
+			defer wg.Done()
+			fullAlbum, err := client.GetAlbum(c, album.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get songs from album %s: %v", album.ID, err)})
+				return
+			}
+			featuredArtist := albumFuncs.GetArtistsFromAlbum(fullAlbum, id)
+			resultChan <- featuredArtist
 
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get songs from album %s", album.ID)})
-			return
-		}
-
-		featuredArtist := albumFuncs.GetArtistsFromAlbum(fullAlbum, id)
-
-		featuredArtists = albumFuncs.MergeEntries(featuredArtist, featuredArtists)
+		}(album.ID)
 	}
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
 
+	go func() {
+		for featuredArtist := range resultChan {
+			featuredArtists = albumFuncs.MergeEntries(featuredArtist, featuredArtists)
+		}
+	}()
+
+	wg.Wait()
 	c.JSON(http.StatusOK, featuredArtists)
 
 }
