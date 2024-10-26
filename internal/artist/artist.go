@@ -84,9 +84,6 @@ func getPathArtistInfo(ids []spotify.ID, g graph.Graph[spotify.ID, album.Artist]
 	artists := make([]album.Artist, len(ids))
 
 	for idx, id := range ids {
-		if idx == 0 {
-			continue
-		}
 		artist, err := g.Vertex(id)
 		if err != nil {
 			log.Printf("Can't find artist with id: %s", id)
