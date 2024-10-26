@@ -71,7 +71,7 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 			log.Printf("Already found artist: %s for id: %s", artist.Name, endID)
 			extraSongData := make(map[string][]string)
 			extraSongData["end_songs"] = artist.Songs
-			err = g.AddEdge(startID, id, graph.EdgeData(extraSongData))
+			err = g.AddEdge(endID, id, graph.EdgeData(extraSongData))
 			if err != nil {
 				log.Printf("Can't add edge due to err: %v", err)
 			}
