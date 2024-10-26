@@ -8,13 +8,13 @@ import (
 	"github.com/zmb3/spotify/v2"
 )
 
-func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo, startID spotify.ID, endID spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) ([]album.Artist, error) {
+func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo, startID spotify.ID, endID spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) ([]album.Artist, error) {
 	artistHash := func(a album.Artist) spotify.ID {
 		return a.ID
 	}
 	var g graph.Graph[spotify.ID, album.Artist]
 	if curr == nil {
-		g = graph.New(artistHash, graph.Directed(), graph.Acyclic())
+		g = graph.New(artistHash, graph.Acyclic())
 	} else {
 		g = curr
 	}
@@ -74,8 +74,6 @@ func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo,
 		return nil, err
 	}
 
-	log.Println(pathIds)
-
 	pathInfo := getPathArtistInfo(pathIds, g)
 
 	return pathInfo, nil
@@ -83,7 +81,7 @@ func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo,
 }
 
 func getPathArtistInfo(ids []spotify.ID, g graph.Graph[spotify.ID, album.Artist]) []album.Artist {
-	artists := make([]album.Artist, len(ids)-1)
+	artists := make([]album.Artist, len(ids))
 
 	for idx, id := range ids {
 		if idx == 0 {
@@ -93,7 +91,7 @@ func getPathArtistInfo(ids []spotify.ID, g graph.Graph[spotify.ID, album.Artist]
 		if err != nil {
 			log.Printf("Can't find artist with id: %s", id)
 		}
-		artists[idx-1] = artist
+		artists[idx] = artist
 	}
 
 	return artists

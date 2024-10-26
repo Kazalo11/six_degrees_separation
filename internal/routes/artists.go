@@ -61,7 +61,7 @@ func connectArtists(c *gin.Context) {
 		return
 	}
 
-	graph, err := artist.UpsertGraph(feat1, feat2, spotify.ID(id1), spotify.ID(id2), nil)
+	graph, err := artist.MatchArtists(feat1, feat2, spotify.ID(id1), spotify.ID(id2), nil)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to create graph for this endpoint"})
