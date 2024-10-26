@@ -40,8 +40,14 @@ func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo,
 	for id, artist := range feat1 {
 		_, err := g.Vertex(id)
 		if err != nil {
+			log.Printf("Adding artist: %s \n", artist.Name)
 			g.AddVertex(artist)
-			g.AddEdge(startID, id)
+		} else {
+			log.Printf("Already found artist: %s for id: %s", artist.Name, startID)
+		}
+		err = g.AddEdge(startID, id)
+		if err != nil {
+			log.Printf("Can't add edge due to err: %v", err)
 		}
 
 	}
@@ -49,8 +55,14 @@ func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo,
 	for id, artist := range feat2 {
 		_, err := g.Vertex(id)
 		if err != nil {
+			log.Printf("Adding artist: %s \n", artist.Name)
 			g.AddVertex(artist)
-			g.AddEdge(endID, id)
+		} else {
+			log.Printf("Already found artist: %s for id: %s", artist.Name, endID)
+		}
+		err = g.AddEdge(endID, id)
+		if err != nil {
+			log.Printf("Can't add edge due to err: %v", err)
 		}
 
 	}
