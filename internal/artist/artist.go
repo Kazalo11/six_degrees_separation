@@ -8,7 +8,7 @@ import (
 	"github.com/zmb3/spotify/v2"
 )
 
-func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo, startID spotify.ID, endID spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) (graph.Graph[spotify.ID, album.Artist], error) {
+func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo, startID spotify.ID, endID spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) ([]album.Artist, error) {
 	artistHash := func(a album.Artist) spotify.ID {
 		return a.ID
 	}
@@ -54,14 +54,33 @@ func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo,
 		g.AddEdge(endID, id)
 	}
 
-	path, err := graph.ShortestPath(g, startID, endID)
+	pathIds, err := graph.ShortestPath(g, startID, endID)
 
 	if err != nil {
 		log.Println("Can't find a path between them")
 	}
 
-	log.Println(path)
+	log.Println(pathIds)
 
-	return g, nil
+	pathInfo := getPathArtistInfo(pathIds, g)
 
+	return pathInfo, nil
+
+}
+
+func getPathArtistInfo(ids []spotify.ID, g graph.Graph[spotify.ID, album.Artist]) []album.Artist {
+	artists := make([]album.Artist, len(ids)-1)
+
+	for idx, id := range ids {
+		if idx == 0 {
+			continue
+		}
+		artist, err := g.Vertex(id)
+		if err != nil {
+			log.Printf("Can't find artist with id: %s", id)
+		}
+		artists[idx-1] = artist
+	}
+
+	return artists
 }
