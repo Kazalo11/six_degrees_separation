@@ -40,7 +40,6 @@ func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo,
 	for id, artist := range feat1 {
 		_, err := g.Vertex(id)
 		if err != nil {
-			log.Println("Artist doesn't already exist")
 			g.AddVertex(artist)
 			g.AddEdge(startID, id)
 		}
@@ -50,7 +49,6 @@ func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo,
 	for id, artist := range feat2 {
 		_, err := g.Vertex(id)
 		if err != nil {
-			log.Println("Artist doesn't already exist")
 			g.AddVertex(artist)
 			g.AddEdge(endID, id)
 		}
@@ -59,8 +57,9 @@ func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo,
 
 	pathIds, err := graph.ShortestPath(g, startID, endID)
 
-	if err != nil {
+	if err != nil || pathIds == nil {
 		log.Println("Can't find a path between them")
+		return nil, err
 	}
 
 	log.Println(pathIds)
