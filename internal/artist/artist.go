@@ -42,18 +42,15 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 		if err != nil {
 			log.Printf("Adding artist: %s \n", artist.Name)
 			g.AddVertex(artist)
-			err = g.AddEdge(startID, id)
-			if err != nil {
-				log.Printf("Can't add edge due to err: %v", err)
-			}
 		} else {
 			log.Printf("Already found artist: %s for id: %s", artist.Name, startID)
-			extraSongData := make(map[string][]string)
-			extraSongData["start_songs"] = artist.Songs
-			err = g.AddEdge(startID, id, graph.EdgeData(extraSongData))
-			if err != nil {
-				log.Printf("Can't add edge due to err: %v", err)
-			}
+
+		}
+		songData := make(map[string][]string)
+		songData["from_songs"] = artist.Songs
+		err = g.AddEdge(startID, id, graph.EdgeData(songData))
+		if err != nil {
+			log.Printf("Can't add edge due to err: %v", err)
 		}
 
 	}
@@ -63,18 +60,15 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 		if err != nil {
 			log.Printf("Adding artist: %s \n", artist.Name)
 			g.AddVertex(artist)
-			err = g.AddEdge(endID, id)
-			if err != nil {
-				log.Printf("Can't add edge due to err: %v", err)
-			}
 		} else {
 			log.Printf("Already found artist: %s for id: %s", artist.Name, endID)
-			extraSongData := make(map[string][]string)
-			extraSongData["end_songs"] = artist.Songs
-			err = g.AddEdge(endID, id, graph.EdgeData(extraSongData))
-			if err != nil {
-				log.Printf("Can't add edge due to err: %v", err)
-			}
+
+		}
+		songData := make(map[string][]string)
+		songData["to_songs"] = artist.Songs
+		err = g.AddEdge(endID, id, graph.EdgeData(songData))
+		if err != nil {
+			log.Printf("Can't add edge due to err: %v", err)
 		}
 
 	}
@@ -95,13 +89,36 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 func getPathArtistInfo(ids []spotify.ID, g graph.Graph[spotify.ID, album.Artist]) []album.Artist {
 	artists := make([]album.Artist, len(ids))
 
-	for idx, id := range ids {
-		artist, err := g.Vertex(id)
-		if err != nil {
-			log.Printf("Can't find artist with id: %s", id)
+	// for idx, id := range ids {
+	// 	artist, err := g.Vertex(id)
+	// 	if err != nil {
+	// 		log.Printf("Can't find artist with id: %s", id)
+	// 	}
+	// 	artists[idx] = artist
+	// }
+
+	for i := 0; i < len(ids)-1; i++ {
+		curr := ids[i]
+		next := ids[i+1]
+
+		edge, _ := g.Edge(curr, next)
+		artist, _ := g.Vertex(curr)
+
+		data := edge.Properties.Data
+
+		if songs, ok := data.(map[string][]string); ok {
+			if from, ok := songs["from_songs"]; ok {
+				artist.SongsFrom = from
+			}
+			if to, ok := songs["to_songs"]; ok {
+				artist.SongsTo = to
+			}
+
 		}
-		artists[idx] = artist
+		artists[i] = artist
 	}
+	final := len(ids) - 1
+	artists[final], _ = g.Vertex(ids[final])
 
 	return artists
 }

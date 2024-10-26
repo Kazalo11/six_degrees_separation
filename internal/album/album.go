@@ -7,9 +7,11 @@ import (
 )
 
 type Artist struct {
-	Name  string
-	Songs []string
-	ID    spotify.ID
+	Name      string
+	Songs     []string
+	ID        spotify.ID
+	SongsFrom []string
+	SongsTo   []string
 }
 
 type FeaturedArtistInfo map[spotify.ID]Artist
