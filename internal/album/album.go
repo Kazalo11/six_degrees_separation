@@ -9,6 +9,7 @@ import (
 type Artist struct {
 	Name  string
 	Songs []string
+	ID    spotify.ID
 }
 
 type FeaturedArtistInfo map[spotify.ID]Artist
@@ -31,6 +32,7 @@ func GetArtistsFromAlbum(fullAlbum *spotify.FullAlbum, originalArtistID string) 
 			} else {
 				response[artist.ID] = Artist{
 					Name:  artist.Name,
+					ID:    artist.ID,
 					Songs: []string{track.Name},
 				}
 			}
