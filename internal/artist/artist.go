@@ -8,7 +8,7 @@ import (
 	"github.com/zmb3/spotify/v2"
 )
 
-func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo, startID spotify.ID, endID spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) ([]album.Artist, error) {
+func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo, startID spotify.ID, endID spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) ([]album.Artist, graph.Graph[spotify.ID, album.Artist]) {
 	artistHash := func(a album.Artist) spotify.ID {
 		return a.ID
 	}
@@ -77,7 +77,7 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 
 	if err != nil || pathIds == nil {
 		log.Println("Can't find a path between them")
-		return nil, err
+		return nil, g
 	}
 
 	pathInfo := getPathArtistInfo(pathIds, g)
@@ -88,14 +88,6 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 
 func getPathArtistInfo(ids []spotify.ID, g graph.Graph[spotify.ID, album.Artist]) []album.Artist {
 	artists := make([]album.Artist, len(ids))
-
-	// for idx, id := range ids {
-	// 	artist, err := g.Vertex(id)
-	// 	if err != nil {
-	// 		log.Printf("Can't find artist with id: %s", id)
-	// 	}
-	// 	artists[idx] = artist
-	// }
 
 	for i := 0; i < len(ids)-1; i++ {
 		curr := ids[i]
