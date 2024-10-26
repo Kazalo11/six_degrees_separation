@@ -44,7 +44,7 @@ func TestMatchArtists(t *testing.T) {
 
 	}
 
-	expectedResponse := make([]album.Artist, 2)
+	expectedResponse := make([]album.Artist, 3)
 
 	expectedResponse = append(expectedResponse, artist1)
 
@@ -52,7 +52,7 @@ func TestMatchArtists(t *testing.T) {
 
 	expectedResponse = append(expectedResponse, artist3)
 
-	if reflect.DeepEqual(resp[0], artist2) {
+	if reflect.DeepEqual(resp, expectedResponse) {
 		t.Errorf("Returned %v instead of artist2", resp)
 
 	}

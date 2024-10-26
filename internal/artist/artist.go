@@ -42,12 +42,18 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 		if err != nil {
 			log.Printf("Adding artist: %s \n", artist.Name)
 			g.AddVertex(artist)
+			err = g.AddEdge(startID, id)
+			if err != nil {
+				log.Printf("Can't add edge due to err: %v", err)
+			}
 		} else {
 			log.Printf("Already found artist: %s for id: %s", artist.Name, startID)
-		}
-		err = g.AddEdge(startID, id)
-		if err != nil {
-			log.Printf("Can't add edge due to err: %v", err)
+			extraSongData := make(map[string][]string)
+			extraSongData["start_songs"] = artist.Songs
+			err = g.AddEdge(startID, id, graph.EdgeData(extraSongData))
+			if err != nil {
+				log.Printf("Can't add edge due to err: %v", err)
+			}
 		}
 
 	}
@@ -57,12 +63,18 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 		if err != nil {
 			log.Printf("Adding artist: %s \n", artist.Name)
 			g.AddVertex(artist)
+			err = g.AddEdge(endID, id)
+			if err != nil {
+				log.Printf("Can't add edge due to err: %v", err)
+			}
 		} else {
 			log.Printf("Already found artist: %s for id: %s", artist.Name, endID)
-		}
-		err = g.AddEdge(endID, id)
-		if err != nil {
-			log.Printf("Can't add edge due to err: %v", err)
+			extraSongData := make(map[string][]string)
+			extraSongData["end_songs"] = artist.Songs
+			err = g.AddEdge(startID, id, graph.EdgeData(extraSongData))
+			if err != nil {
+				log.Printf("Can't add edge due to err: %v", err)
+			}
 		}
 
 	}
