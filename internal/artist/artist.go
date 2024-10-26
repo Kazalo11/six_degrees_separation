@@ -1,6 +1,7 @@
 package artist
 
 import (
+	"errors"
 	"log"
 
 	"github.com/Kazalo11/six-degrees-seperation/internal/album"
@@ -8,7 +9,14 @@ import (
 	"github.com/zmb3/spotify/v2"
 )
 
-func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo, startID spotify.ID, endID spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) ([]album.Artist, graph.Graph[spotify.ID, album.Artist]) {
+type Direction string
+
+const (
+	forwards  Direction = "forwards"
+	backwards Direction = "backwards"
+)
+
+func UpsertGraph(feat album.FeaturedArtistInfo, id spotify.ID, direction Direction, curr graph.Graph[spotify.ID, album.Artist]) graph.Graph[spotify.ID, album.Artist] {
 	artistHash := func(a album.Artist) spotify.ID {
 		return a.ID
 	}
@@ -18,65 +26,54 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 	} else {
 		g = curr
 	}
-
-	startArtist := album.Artist{
-		ID: startID,
+	curr_artist := album.Artist{
+		ID: id,
 	}
-
-	endArtist := album.Artist{
-		ID: endID,
-	}
-
-	err := g.AddVertex(startArtist)
+	err := g.AddVertex(curr_artist)
 	if err != nil {
-		log.Printf("Vertex with ID: %s already exists", startID)
-	}
-	err2 := g.AddVertex(endArtist)
-
-	if err2 != nil {
-		log.Printf("Vertex with ID: %s already exists", endID)
+		log.Printf("Vertex with ID: %s already exists", id)
 	}
 
-	for id, artist := range feat1 {
-		_, err := g.Vertex(id)
+	for artistId, artist := range feat {
+		_, err := g.Vertex(artistId)
 		if err != nil {
 			g.AddVertex(artist)
 		} else {
-			log.Printf("Already found artist: %s for id: %s", artist.Name, startID)
+			log.Printf("Already found artist: %s for id: %s", artist.Name, id)
 
 		}
 		songData := make(map[string][]string)
-		songData["from_songs"] = artist.Songs
-		err = g.AddEdge(startID, id, graph.EdgeData(songData))
+		if direction == "forwards" {
+			songData["from_songs"] = artist.Songs
+
+		} else {
+			songData["to_songs"] = artist.Songs
+		}
+		err = g.AddEdge(id, artistId, graph.EdgeData(songData))
 		if err != nil {
 			log.Printf("Can't add edge due to err: %v", err)
 		}
 
 	}
+	return g
 
-	for id, artist := range feat2 {
-		_, err := g.Vertex(id)
-		if err != nil {
-			log.Printf("Adding artist: %s \n", artist.Name)
-			g.AddVertex(artist)
-		} else {
-			log.Printf("Already found artist: %s for id: %s", artist.Name, endID)
+}
 
-		}
-		songData := make(map[string][]string)
-		songData["to_songs"] = artist.Songs
-		err = g.AddEdge(endID, id, graph.EdgeData(songData))
-		if err != nil {
-			log.Printf("Can't add edge due to err: %v", err)
-		}
+func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo, startID spotify.ID, endID spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) ([]album.Artist, error) {
+	g := UpsertGraph(feat1, startID, "forwards", curr)
 
-	}
+	g2 := UpsertGraph(feat2, endID, "backwards", g)
 
+	return GetShortestPath(g2, startID, endID)
+
+}
+
+func GetShortestPath(g graph.Graph[spotify.ID, album.Artist], startID spotify.ID, endID spotify.ID) ([]album.Artist, error) {
 	pathIds, err := graph.ShortestPath(g, startID, endID)
 
 	if err != nil || pathIds == nil {
 		log.Println("Can't find a path between them")
-		return nil, g
+		return nil, errors.New("can't find a path between them")
 	}
 
 	pathInfo := getPathArtistInfo(pathIds, g)
