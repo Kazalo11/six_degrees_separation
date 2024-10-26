@@ -38,20 +38,23 @@ func UpsertGraph(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo,
 	}
 
 	for id, artist := range feat1 {
-		g.AddVertex(artist)
-		g.AddEdge(startID, id)
+		_, err := g.Vertex(id)
+		if err != nil {
+			log.Println("Artist doesn't already exist")
+			g.AddVertex(artist)
+			g.AddEdge(startID, id)
+		}
 
 	}
 
 	for id, artist := range feat2 {
-		err := g.AddVertex(artist)
+		_, err := g.Vertex(id)
 		if err != nil {
-			art, err := g.Vertex(id)
-			if err != nil {
-				log.Println("Failed to add vertex with id: %s due to err %v", id, err)
-			}
+			log.Println("Artist doesn't already exist")
+			g.AddVertex(artist)
+			g.AddEdge(endID, id)
 		}
-		g.AddEdge(endID, id)
+
 	}
 
 	pathIds, err := graph.ShortestPath(g, startID, endID)
