@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -34,30 +35,15 @@ func connectArtists(c *gin.Context) {
 	id1 := c.Param("id1")
 	id2 := c.Param("id2")
 
-	var feat1 albumFuncs.FeaturedArtistInfo
-	var feat2 albumFuncs.FeaturedArtistInfo
-
-	resp1, err := http.Get(fmt.Sprintf("http://localhost:8080/v1/artist/%s/features", id1))
+	feat1, err := featuredArtistInfo(id1)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Failed to get artists for id %s due to err %v", id1, err)})
 		return
 	}
 
-	err = json.NewDecoder(resp1.Body).Decode(&feat1)
+	feat2, err := featuredArtistInfo(id2)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to decode artist for id %s due to err %v", id1, err)})
-		return
-	}
-
-	resp2, err := http.Get(fmt.Sprintf("http://localhost:8080/v1/artist/%s/features", id2))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Failed to get artists for id %s due to err %v", id1, err)})
-		return
-	}
-
-	err = json.NewDecoder(resp2.Body).Decode(&feat2)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to decode artist for id %s due to err %v", id2, err)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Failed to get artists for id %s due to err %v", id2, err)})
 		return
 	}
 
@@ -67,6 +53,23 @@ func connectArtists(c *gin.Context) {
 		c.JSON(http.StatusOK, path)
 		return
 	}
+
+}
+
+func featuredArtistInfo(id string) (albumFuncs.FeaturedArtistInfo, error) {
+	var feat albumFuncs.FeaturedArtistInfo
+	resp1, err := http.Get(fmt.Sprintf("http://localhost:8080/v1/artist/%s/features", id))
+	if err != nil {
+		log.Printf("Failed to get features for artist: %s", id)
+		return nil, err
+	}
+
+	err = json.NewDecoder(resp1.Body).Decode(&feat)
+	if err != nil {
+		log.Printf("Failed to decode json for artist: %s", id)
+		return nil, err
+	}
+	return feat, nil
 
 }
 
