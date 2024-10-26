@@ -63,12 +63,10 @@ func connectArtists(c *gin.Context) {
 
 	path, _ := artist.MatchArtists(feat1, feat2, spotify.ID(id1), spotify.ID(id2), nil)
 
-	if path == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to create graph for this endpoint"})
+	if path != nil {
+		c.JSON(http.StatusOK, path)
 		return
 	}
-
-	c.JSON(http.StatusOK, path)
 
 }
 

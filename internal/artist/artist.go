@@ -40,7 +40,6 @@ func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo
 	for id, artist := range feat1 {
 		_, err := g.Vertex(id)
 		if err != nil {
-			log.Printf("Adding artist: %s \n", artist.Name)
 			g.AddVertex(artist)
 		} else {
 			log.Printf("Already found artist: %s for id: %s", artist.Name, startID)
