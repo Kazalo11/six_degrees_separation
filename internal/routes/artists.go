@@ -69,8 +69,8 @@ func connectArtists(c *gin.Context) {
 		return
 	}
 
-	g = artist.UpsertGraph(feat1, spotify.ID(id1), "forwards", nil)
-	g = artist.UpsertGraph(feat2, spotify.ID(id2), "backwards", g)
+	g = artist.UpsertGraph(feat1, spotify.ID(id1), nil)
+	g = artist.UpsertGraph(feat2, spotify.ID(id2), g)
 
 	path, _ := artist.GetShortestPath(g, spotify.ID(id1), spotify.ID(id2))
 

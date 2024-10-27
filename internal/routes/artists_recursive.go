@@ -26,7 +26,7 @@ func upsertGraph(feat albumFuncs.FeaturedArtistInfo, direction artist.Direction)
 			log.Printf("Could not find featured artists for %s due to err: %v", newArtist.Name, err2)
 			continue
 		}
-		g = artist.UpsertGraph(newFeat, idx, direction, g)
+		g = artist.UpsertGraph(newFeat, idx, g)
 
 	}
 }

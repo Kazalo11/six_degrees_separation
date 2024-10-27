@@ -11,12 +11,7 @@ import (
 
 type Direction string
 
-const (
-	forwards  Direction = "forwards"
-	backwards Direction = "backwards"
-)
-
-func UpsertGraph(feat album.FeaturedArtistInfo, id spotify.ID, direction Direction, curr graph.Graph[spotify.ID, album.Artist]) graph.Graph[spotify.ID, album.Artist] {
+func UpsertGraph(feat album.FeaturedArtistInfo, id spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) graph.Graph[spotify.ID, album.Artist] {
 	artistHash := func(a album.Artist) spotify.ID {
 		return a.ID
 	}
@@ -38,14 +33,7 @@ func UpsertGraph(feat album.FeaturedArtistInfo, id spotify.ID, direction Directi
 		} else {
 			log.Printf("Already found artist: %s for id: %s", artist.Name, id)
 		}
-		songData := make(map[string][]string)
-		if direction == "forwards" {
-			songData["from_songs"] = artist.Songs
-
-		} else {
-			songData["to_songs"] = artist.Songs
-		}
-		err = g.AddEdge(id, artistId, graph.EdgeData(songData))
+		err = g.AddEdge(id, artistId, graph.EdgeData(artist.Songs))
 		if err != nil {
 			log.Printf("Can't add edge due to err: %v", err)
 		}
@@ -56,9 +44,9 @@ func UpsertGraph(feat album.FeaturedArtistInfo, id spotify.ID, direction Directi
 }
 
 func MatchArtists(feat1 album.FeaturedArtistInfo, feat2 album.FeaturedArtistInfo, startID spotify.ID, endID spotify.ID, curr graph.Graph[spotify.ID, album.Artist]) ([]album.Artist, error) {
-	g := UpsertGraph(feat1, startID, "forwards", curr)
+	g := UpsertGraph(feat1, startID, curr)
 
-	g2 := UpsertGraph(feat2, endID, "backwards", g)
+	g2 := UpsertGraph(feat2, endID, g)
 
 	return GetShortestPath(g2, startID, endID)
 
@@ -90,13 +78,8 @@ func getPathArtistInfo(ids []spotify.ID, g graph.Graph[spotify.ID, album.Artist]
 
 		data := edge.Properties.Data
 
-		if songs, ok := data.(map[string][]string); ok {
-			if from, ok := songs["from_songs"]; ok {
-				artist.SongsFrom = from
-			}
-			if to, ok := songs["to_songs"]; ok {
-				artist.SongsTo = to
-			}
+		if songs, ok := data.([]string); ok {
+			artist.SongsConnection = songs
 
 		}
 		artists[i] = artist

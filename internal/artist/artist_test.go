@@ -17,8 +17,7 @@ var (
 	songs2 = make([]string, 3)
 
 	artist1 = album.Artist{
-		ID:        id1,
-		SongsFrom: songs1,
+		ID: id1,
 	}
 	artist3 = album.Artist{
 		ID: id3,
@@ -65,10 +64,9 @@ func TestMatchArtists(t *testing.T) {
 	}
 
 	expectedArtist := album.Artist{
-		ID:      id2,
-		Name:    "name2",
-		Songs:   []string{"song1", "song2"},
-		SongsTo: []string{"songs3", "songs4", "songs5"},
+		ID:    id2,
+		Name:  "name2",
+		Songs: []string{"song1", "song2"},
 	}
 
 	expectedResponse := make([]album.Artist, 0)
