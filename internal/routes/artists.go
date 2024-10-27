@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -22,8 +23,6 @@ var (
 	redirectURL = "http://localhost:8080/v1/artist/callback"
 	auth        = spotifyauth.New(spotifyauth.WithRedirectURL(redirectURL))
 	g           graph.Graph[spotify.ID, albumFuncs.Artist]
-	wg          sync.WaitGroup
-	mu          sync.Mutex
 )
 
 func ArtistRoutes(superRoute *gin.RouterGroup) {
@@ -51,10 +50,8 @@ func connectArtists(c *gin.Context) {
 		return
 	}
 
-	mu.Lock()
 	g = artist.UpsertGraph(feat1, spotify.ID(id1), "forwards", nil)
 	g = artist.UpsertGraph(feat2, spotify.ID(id2), "backwards", g)
-	mu.Unlock()
 
 	path, _ := artist.GetShortestPath(g, spotify.ID(id1), spotify.ID(id2))
 
@@ -63,30 +60,25 @@ func connectArtists(c *gin.Context) {
 		return
 	}
 
-	process := func(id spotify.ID, direction artist.Direction) {
-		defer wg.Done()
-		feat, err := featuredArtistInfo(id.String())
+	for idx, newArtist := range feat1 {
+		newFeat, err := featuredArtistInfo(idx.String())
 		if err != nil {
-			log.Printf("Failed to get artists for id %s due to err %v \n", id, err)
-			return
+			log.Printf("Could not find featured artists for %s due to err: %v", newArtist.Name, err)
+			continue
 		}
-		mu.Lock()
-		g = artist.UpsertGraph(feat, id, direction, g)
-		mu.Unlock()
+		g = artist.UpsertGraph(newFeat, idx, "forwards", g)
 
 	}
 
-	for idx := range feat1 {
-		wg.Add(1)
-		go process(idx, "forwards")
-	}
+	for idx, newArtist := range feat2 {
+		newFeat, err2 := featuredArtistInfo(idx.String())
+		if err2 != nil {
+			log.Printf("Could not find featured artists for %s due to err: %v", newArtist.Name, err2)
+			continue
+		}
+		g = artist.UpsertGraph(newFeat, idx, "backwards", g)
 
-	for idx := range feat2 {
-		wg.Add(1)
-		go process(idx, "backwards")
 	}
-
-	wg.Wait()
 
 	path, _ = artist.GetShortestPath(g, spotify.ID(id1), spotify.ID(id2))
 
@@ -94,7 +86,6 @@ func connectArtists(c *gin.Context) {
 		c.JSON(http.StatusOK, path)
 		return
 	}
-	c.JSON(http.StatusBadRequest, "Could not find path between ids")
 
 }
 
@@ -106,11 +97,17 @@ func featuredArtistInfo(id string) (albumFuncs.FeaturedArtistInfo, error) {
 		log.Printf("Failed to get features for artist: %s", id)
 		return nil, err
 	}
+	body, err := io.ReadAll(resp1.Body)
+	if err != nil {
+		log.Printf("Failed to read response body for artist: %s", id)
+		return feat, err
+	}
+	log.Printf("Received JSON: %s", string(body))
 
-	err = json.NewDecoder(resp1.Body).Decode(&feat)
+	err = json.Unmarshal(body, &feat)
 	if err != nil {
 		log.Printf("Failed to decode json for artist: %s", id)
-		return nil, err
+		return feat, err
 	}
 	return feat, nil
 
@@ -138,7 +135,7 @@ func getFeaturedArtists(c *gin.Context) {
 
 	albums, err := client.GetArtistAlbums(c, spotify.ID(id), []spotify.AlbumType{1}, spotify.Limit(50), spotify.Market("US"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get albums"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get albums due to err: %v", err)})
 		return
 	}
 
@@ -166,9 +163,13 @@ func getFeaturedArtists(c *gin.Context) {
 		close(resultChan)
 	}()
 
+	var mu sync.Mutex
+
 	go func() {
 		for featuredArtist := range resultChan {
+			mu.Lock()
 			featuredArtists = albumFuncs.MergeEntries(featuredArtist, featuredArtists)
+			mu.Unlock()
 		}
 	}()
 
