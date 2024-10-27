@@ -28,11 +28,20 @@ var (
 		NumCounters: 1e7,
 		MaxCost:     1 << 30,
 		BufferItems: 64,
+		OnReject: func(item *ristretto.Item) {
+			fmt.Printf("Rejected item = %+v\n", item)
+		},
 	}
+	cache *ristretto.Cache
 )
 
 func init() {
-
+	var initError error
+	cache, initError = ristretto.NewCache(cache_config)
+	log.Println("Cache initalised")
+	if initError != nil {
+		log.Printf("Could not initalise cache  due to err: %v ", initError)
+	}
 }
 
 func ArtistRoutes(superRoute *gin.RouterGroup) {
@@ -125,6 +134,12 @@ func featuredArtistInfo(id string) (albumFuncs.FeaturedArtistInfo, error) {
 func getFeaturedArtists(c *gin.Context) {
 	id := c.Param("id")
 
+	if cachedData, found := cache.Get(id); found {
+		log.Printf("Cache hit for artist: %s", id)
+		c.JSON(http.StatusOK, cachedData)
+		return
+	}
+
 	config := &clientcredentials.Config{
 		ClientID:     os.Getenv("SPOTIFY_ID"),
 		ClientSecret: os.Getenv("SPOTIFY_SECRET"),
@@ -193,15 +208,12 @@ func getFeaturedArtists(c *gin.Context) {
 		}
 	}()
 
-	cache, initErr := ristretto.NewCache(cache_config)
-	if initErr != nil {
-		log.Printf("Could not initalise cache for id: %s due to err: %v ", id, initErr)
-	}
+	wg.Wait()
 
 	cache.Set(id, featuredArtists, 1)
 	cache.Wait()
+	log.Println("Wrote to the cache")
 
-	wg.Wait()
 	c.JSON(http.StatusOK, featuredArtists)
 
 }
