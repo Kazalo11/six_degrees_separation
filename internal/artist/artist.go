@@ -29,10 +29,7 @@ func UpsertGraph(feat album.FeaturedArtistInfo, id spotify.ID, direction Directi
 	curr_artist := album.Artist{
 		ID: id,
 	}
-	err := g.AddVertex(curr_artist)
-	if err != nil {
-		log.Printf("Vertex with ID: %s already exists", id)
-	}
+	g.AddVertex(curr_artist)
 
 	for artistId, artist := range feat {
 		_, err := g.Vertex(artistId)
@@ -40,7 +37,6 @@ func UpsertGraph(feat album.FeaturedArtistInfo, id spotify.ID, direction Directi
 			g.AddVertex(artist)
 		} else {
 			log.Printf("Already found artist: %s for id: %s", artist.Name, id)
-
 		}
 		songData := make(map[string][]string)
 		if direction == "forwards" {
