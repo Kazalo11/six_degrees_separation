@@ -102,7 +102,6 @@ func featuredArtistInfo(id string) (albumFuncs.FeaturedArtistInfo, error) {
 		log.Printf("Failed to read response body for artist: %s", id)
 		return feat, err
 	}
-	log.Printf("Received JSON: %s", string(body))
 
 	err = json.Unmarshal(body, &feat)
 	if err != nil {
