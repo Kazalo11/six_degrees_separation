@@ -79,25 +79,9 @@ func connectArtists(c *gin.Context) {
 		return
 	}
 
-	for idx, newArtist := range feat1 {
-		newFeat, err := featuredArtistInfo(idx.String())
-		if err != nil {
-			log.Printf("Could not find featured artists for %s due to err: %v", newArtist.Name, err)
-			continue
-		}
-		g = artist.UpsertGraph(newFeat, idx, "forwards", g)
+	g = upsertGraph(feat1, "forwards", g)
 
-	}
-
-	for idx, newArtist := range feat2 {
-		newFeat, err2 := featuredArtistInfo(idx.String())
-		if err2 != nil {
-			log.Printf("Could not find featured artists for %s due to err: %v", newArtist.Name, err2)
-			continue
-		}
-		g = artist.UpsertGraph(newFeat, idx, "backwards", g)
-
-	}
+	g = upsertGraph(feat2, "backwards", g)
 
 	path, _ = artist.GetShortestPath(g, spotify.ID(id1), spotify.ID(id2))
 
@@ -106,6 +90,19 @@ func connectArtists(c *gin.Context) {
 		return
 	}
 
+}
+
+func upsertGraph(feat albumFuncs.FeaturedArtistInfo, direction artist.Direction, graph graph.Graph[spotify.ID, albumFuncs.Artist]) graph.Graph[spotify.ID, albumFuncs.Artist] {
+	for idx, newArtist := range feat {
+		newFeat, err2 := featuredArtistInfo(idx.String())
+		if err2 != nil {
+			log.Printf("Could not find featured artists for %s due to err: %v", newArtist.Name, err2)
+			continue
+		}
+		g = artist.UpsertGraph(newFeat, idx, direction, g)
+
+	}
+	return g
 }
 
 func featuredArtistInfo(id string) (albumFuncs.FeaturedArtistInfo, error) {
