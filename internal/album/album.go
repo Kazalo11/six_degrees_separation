@@ -74,3 +74,11 @@ func removeDuplicates(input []string) []string {
 
 	return result
 }
+
+func GetAlbumIDs(albumBatch []spotify.SimpleAlbum) []spotify.ID {
+	albumIDs := make([]spotify.ID, len(albumBatch))
+	for i, album := range albumBatch {
+		albumIDs[i] = album.ID
+	}
+	return albumIDs
+}

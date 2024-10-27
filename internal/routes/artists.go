@@ -144,32 +144,43 @@ func getFeaturedArtists(c *gin.Context) {
 
 	resultChan := make(chan albumFuncs.FeaturedArtistInfo)
 
-	for _, album := range albums.Albums {
-		wg.Add(1)
-		go func(albumId spotify.ID) {
-			defer wg.Done()
-			fullAlbum, err := client.GetAlbum(c, album.ID)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get songs from album %s: %v", album.ID, err)})
-				return
-			}
-			featuredArtist := albumFuncs.GetArtistsFromAlbum(fullAlbum, id)
-			resultChan <- featuredArtist
+	batchSize := 20
 
-		}(album.ID)
+	for i := 0; i < len(albums.Albums); i += batchSize {
+		end := i + batchSize
+		if end > len(albums.Albums) {
+			end = len(albums.Albums)
+		}
+
+		albumBatch := albums.Albums[i:end]
+
+		albumIds := albumFuncs.GetAlbumIDs(albumBatch)
+
+		fullAlbums, err := client.GetAlbums(c, albumIds)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get songs from album due to err: %v", err)})
+			return
+		}
+
+		for _, fullAlbum := range fullAlbums {
+			wg.Add(1)
+			go func(albumId spotify.ID) {
+				defer wg.Done()
+				featuredArtists := albumFuncs.GetArtistsFromAlbum(fullAlbum, id)
+				resultChan <- featuredArtists
+			}(fullAlbum.ID)
+
+		}
+
 	}
 	go func() {
 		wg.Wait()
 		close(resultChan)
 	}()
 
-	var mu sync.Mutex
-
 	go func() {
 		for featuredArtist := range resultChan {
-			mu.Lock()
 			featuredArtists = albumFuncs.MergeEntries(featuredArtist, featuredArtists)
-			mu.Unlock()
 		}
 	}()
 
