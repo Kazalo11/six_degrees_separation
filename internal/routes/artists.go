@@ -30,7 +30,9 @@ var (
 			fmt.Printf("Rejected item = %+v\n", item)
 		},
 	}
-	cache *ristretto.Cache
+	cache        *ristretto.Cache
+	featForward  = make([]albumFuncs.FeaturedArtistInfo, 0)
+	featBackward = make([]albumFuncs.FeaturedArtistInfo, 0)
 )
 
 func init() {
@@ -77,9 +79,9 @@ func connectArtists(c *gin.Context) {
 		return
 	}
 
-	g = upsertGraph(feat1, "forwards", g)
+	upsertGraph(feat1, "forwards")
 
-	g = upsertGraph(feat2, "backwards", g)
+	upsertGraph(feat2, "backwards")
 
 	path, _ = artist.GetShortestPath(g, spotify.ID(id1), spotify.ID(id2))
 
@@ -88,19 +90,25 @@ func connectArtists(c *gin.Context) {
 		return
 	}
 
-}
+	maxIterations := 10
 
-func upsertGraph(feat albumFuncs.FeaturedArtistInfo, direction artist.Direction, graph graph.Graph[spotify.ID, albumFuncs.Artist]) graph.Graph[spotify.ID, albumFuncs.Artist] {
-	for idx, newArtist := range feat {
-		newFeat, err2 := featuredArtistInfo(idx.String())
-		if err2 != nil {
-			log.Printf("Could not find featured artists for %s due to err: %v", newArtist.Name, err2)
-			continue
+	for i := 0; i < maxIterations; i++ {
+		iteration(featForward, "forwards")
+
+		iteration(featBackward, "backwards")
+
+		path, _ = artist.GetShortestPath(g, spotify.ID(id1), spotify.ID(id2))
+
+		if path != nil {
+			c.JSON(http.StatusOK, path)
+			return
 		}
-		graph = artist.UpsertGraph(newFeat, idx, direction, graph)
+
+		featBackward = nil
+		featForward = nil
 
 	}
-	return graph
+
 }
 
 func getFeaturedArtists(c *gin.Context) {
