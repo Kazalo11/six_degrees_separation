@@ -12,6 +12,7 @@ import (
 
 	albumFuncs "github.com/Kazalo11/six-degrees-seperation/internal/album"
 	"github.com/Kazalo11/six-degrees-seperation/internal/artist"
+	"github.com/dgraph-io/ristretto"
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
 	spotify "github.com/zmb3/spotify/v2"
@@ -20,10 +21,19 @@ import (
 )
 
 var (
-	redirectURL = "http://localhost:8080/v1/artist/callback"
-	auth        = spotifyauth.New(spotifyauth.WithRedirectURL(redirectURL))
-	g           graph.Graph[spotify.ID, albumFuncs.Artist]
+	redirectURL  = "http://localhost:8080/v1/artist/callback"
+	auth         = spotifyauth.New(spotifyauth.WithRedirectURL(redirectURL))
+	g            graph.Graph[spotify.ID, albumFuncs.Artist]
+	cache_config = &ristretto.Config{
+		NumCounters: 1e7,
+		MaxCost:     1 << 30,
+		BufferItems: 64,
+	}
 )
+
+func init() {
+
+}
 
 func ArtistRoutes(superRoute *gin.RouterGroup) {
 	artistRouter := superRoute.Group("/artist")
@@ -182,6 +192,14 @@ func getFeaturedArtists(c *gin.Context) {
 			featuredArtists = albumFuncs.MergeEntries(featuredArtist, featuredArtists)
 		}
 	}()
+
+	cache, initErr := ristretto.NewCache(cache_config)
+	if initErr != nil {
+		log.Printf("Could not initalise cache for id: %s due to err: %v ", id, initErr)
+	}
+
+	cache.Set(id, featuredArtists, 1)
+	cache.Wait()
 
 	wg.Wait()
 	c.JSON(http.StatusOK, featuredArtists)
