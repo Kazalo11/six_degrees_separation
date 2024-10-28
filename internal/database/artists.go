@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/Kazalo11/six-degrees-seperation/internal/album"
@@ -30,11 +31,20 @@ func WriteFeaturedArtists(db *sql.DB, id string, feat album.FeaturedArtistInfo) 
 }
 
 func GetFeaturedArtists(db *sql.DB, id string) (album.FeaturedArtistInfo, error) {
+	row := db.QueryRow("SELECT 1 FROM featured_artists WHERE id = $1", id)
+	var exists int
+	if err := row.Scan(&exists); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("no featured artists found for id %s", id)
+		}
+		return nil, err
+	}
 	rows, err := db.Query("SELECT * FROM featured_artists WHERE id = $1", id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
 	feat := make(album.FeaturedArtistInfo)
 	for rows.Next() {
 		var art album.Artist
