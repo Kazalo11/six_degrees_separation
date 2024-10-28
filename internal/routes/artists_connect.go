@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Kazalo11/six-degrees-seperation/internal/album"
 	"github.com/Kazalo11/six-degrees-seperation/internal/artist"
 	"github.com/gin-gonic/gin"
 	spotify "github.com/zmb3/spotify/v2"
@@ -59,7 +60,7 @@ func connectArtists(c *gin.Context) {
 		}
 
 		featPrev = featCurr
-		featCurr = nil
+		featCurr = []album.FeaturedArtistInfo{}
 
 	}
 
