@@ -2,9 +2,7 @@ package database
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/Kazalo11/six-degrees-seperation/internal/album"
@@ -41,16 +39,10 @@ func GetFeaturedArtists(db *sql.DB, id string) (album.FeaturedArtistInfo, error)
 	for rows.Next() {
 		var art album.Artist
 		var string_id spotify.ID
-		var songsString string
-		if err := rows.Scan(&string_id, &art.Name, &songsString, &art.ID); err != nil {
+		if err := rows.Scan(&string_id, &art.Name, pq.Array(&art.Songs), &art.ID); err != nil {
 			return feat, err
 
 		}
-		var songs []string
-		if err := json.Unmarshal([]byte(songsString), &songs); err != nil {
-			return nil, fmt.Errorf("error unmarshalling songs JSON: %w", err)
-		}
-		art.Songs = songs
 		feat[string_id] = art
 	}
 	if err = rows.Err(); err != nil {
