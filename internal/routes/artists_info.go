@@ -22,7 +22,7 @@ func featuredArtistInfo(id string) (albumFuncs.FeaturedArtistInfo, error) {
 	body, err := io.ReadAll(resp1.Body)
 	if err != nil {
 		log.Printf("Failed to read response body for artist: %s", id)
-		return feat, err
+		return nil, err
 	}
 
 	err = json.Unmarshal(body, &feat)
