@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Kazalo11/six-degrees-seperation/internal/database"
 	"github.com/Kazalo11/six-degrees-seperation/internal/middleware"
 	routes "github.com/Kazalo11/six-degrees-seperation/internal/routes"
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,8 @@ func Start() {
 			log.Fatal("Error loading .env file")
 		}
 	}
+	database.ConnectTCPSocket()
+
 	router.Use(middleware.AuthorizeRequest())
 	v1 := router.Group("/v1")
 	AddRoutes(v1)

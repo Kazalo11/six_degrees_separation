@@ -2,13 +2,13 @@ package routes
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"sync"
 
 	albumFuncs "github.com/Kazalo11/six-degrees-seperation/internal/album"
+	"github.com/Kazalo11/six-degrees-seperation/internal/database"
 	"github.com/gin-gonic/gin"
 	spotify "github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
@@ -16,13 +16,13 @@ import (
 )
 
 func getFeaturedArtists(c *gin.Context) {
-	id := c.Param("id")
-
-	if cachedData, found := cache.Get(id); found {
-		log.Printf("Cache hit for artist: %s", id)
-		c.JSON(http.StatusOK, cachedData)
+	dbPool, err := database.ConnectTCPSocket()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Unable to connect to db due to error: %v", err)})
 		return
 	}
+
+	id := c.Param("id")
 
 	config := &clientcredentials.Config{
 		ClientID:     os.Getenv("SPOTIFY_ID"),
@@ -94,9 +94,11 @@ func getFeaturedArtists(c *gin.Context) {
 
 	wg.Wait()
 
-	cache.Set(id, featuredArtists, 1)
-	cache.Wait()
-	log.Println("Wrote to the cache")
+	_, err = database.WriteFeaturedArtists(dbPool, id, featuredArtists)
+
+	if err != nil {
+		fmt.Printf("Error writing to the db: %v", err)
+	}
 
 	c.JSON(http.StatusOK, featuredArtists)
 
