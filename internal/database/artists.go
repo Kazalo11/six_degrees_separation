@@ -43,7 +43,7 @@ func GetFeaturedArtists(db *sql.DB, id string) (album.FeaturedArtistInfo, error)
 			return feat, err
 
 		}
-		feat[string_id] = art
+		feat[art.ID] = art
 	}
 	if err = rows.Err(); err != nil {
 		return feat, err

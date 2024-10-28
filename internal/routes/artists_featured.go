@@ -30,6 +30,7 @@ func getFeaturedArtists(c *gin.Context) {
 	if err == nil {
 		log.Println("Returning db value")
 		c.JSON(http.StatusOK, feat)
+		return
 	}
 	log.Printf("Unable to get item from db due to: %v", err)
 
