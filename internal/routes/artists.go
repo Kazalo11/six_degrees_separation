@@ -30,9 +30,9 @@ var (
 			fmt.Printf("Rejected item = %+v\n", item)
 		},
 	}
-	cache        *ristretto.Cache
-	featForward  = make([]albumFuncs.FeaturedArtistInfo, 0)
-	featBackward = make([]albumFuncs.FeaturedArtistInfo, 0)
+	cache    *ristretto.Cache
+	featCurr = make([]albumFuncs.FeaturedArtistInfo, 0)
+	featPrev = make([]albumFuncs.FeaturedArtistInfo, 0)
 )
 
 func init() {
@@ -79,9 +79,9 @@ func connectArtists(c *gin.Context) {
 		return
 	}
 
-	upsertGraph(feat1, "forwards")
+	upsertGraph(feat1)
 
-	upsertGraph(feat2, "backwards")
+	upsertGraph(feat2)
 
 	path, _ = artist.GetShortestPath(g, spotify.ID(id1), spotify.ID(id2))
 
@@ -93,9 +93,7 @@ func connectArtists(c *gin.Context) {
 	maxIterations := 10
 
 	for i := 0; i < maxIterations; i++ {
-		iteration(featForward, "forwards")
-
-		iteration(featBackward, "backwards")
+		iteration(featPrev)
 
 		path, _ = artist.GetShortestPath(g, spotify.ID(id1), spotify.ID(id2))
 
@@ -104,8 +102,8 @@ func connectArtists(c *gin.Context) {
 			return
 		}
 
-		featBackward = nil
-		featForward = nil
+		featPrev = featCurr
+		featCurr = nil
 
 	}
 
