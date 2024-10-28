@@ -2,11 +2,14 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/Kazalo11/six-degrees-seperation/internal/album"
 	"github.com/lib/pq"
+	"github.com/zmb3/spotify/v2"
 )
 
 func WriteFeaturedArtists(db *sql.DB, id string, feat album.FeaturedArtistInfo) (string, error) {
@@ -26,4 +29,32 @@ func WriteFeaturedArtists(db *sql.DB, id string, feat album.FeaturedArtistInfo) 
 	}
 	return id, overall_error
 
+}
+
+func GetFeaturedArtists(db *sql.DB, id string) (album.FeaturedArtistInfo, error) {
+	rows, err := db.Query("SELECT * FROM featured_artists WHERE id = $1", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	feat := make(album.FeaturedArtistInfo)
+	for rows.Next() {
+		var art album.Artist
+		var string_id spotify.ID
+		var songsString string
+		if err := rows.Scan(&string_id, &art.Name, &songsString, &art.ID); err != nil {
+			return feat, err
+
+		}
+		var songs []string
+		if err := json.Unmarshal([]byte(songsString), &songs); err != nil {
+			return nil, fmt.Errorf("error unmarshalling songs JSON: %w", err)
+		}
+		art.Songs = songs
+		feat[string_id] = art
+	}
+	if err = rows.Err(); err != nil {
+		return feat, err
+	}
+	return feat, nil
 }

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,6 +24,14 @@ func getFeaturedArtists(c *gin.Context) {
 	}
 
 	id := c.Param("id")
+
+	feat, err := database.GetFeaturedArtists(dbPool, id)
+
+	if err == nil {
+		log.Println("Returning db value")
+		c.JSON(http.StatusOK, feat)
+	}
+	log.Printf("Unable to get item from db due to: %v", err)
 
 	config := &clientcredentials.Config{
 		ClientID:     os.Getenv("SPOTIFY_ID"),
